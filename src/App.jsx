@@ -10,8 +10,10 @@ import CompliancePanel from './components/CompliancePanel'
 import ActivityFeed from './components/ActivityFeed'
 import Charts from './components/Charts'
 import AffiliateLinksPanel from './components/AffiliateLinksPanel'
+import BYOKModal from './components/BYOKModal'
+import { getAPIKey } from './utils/encryption'
 
-function DashboardView() {
+function DashboardView({ onOpenBYOK, selectedProvider, selectedModel }) {
   return (
     <div className="space-y-4">
       <StatsOverview />
@@ -20,7 +22,7 @@ function DashboardView() {
         <div className="col-span-2">
           <TrendingRadar />
         </div>
-        <ContextMatch />
+        <ContextMatch onOpenSettings={onOpenBYOK} selectedProvider={selectedProvider} selectedModel={selectedModel} />
       </div>
       <div className="grid grid-cols-3 gap-4">
         <div className="col-span-2">
@@ -32,14 +34,14 @@ function DashboardView() {
   )
 }
 
-function RadarView() {
+function RadarView({ onOpenBYOK, selectedProvider, selectedModel }) {
   return (
     <div className="grid grid-cols-3 gap-4">
       <div className="col-span-2">
         <TrendingRadar />
       </div>
       <div className="space-y-4">
-        <ContextMatch />
+        <ContextMatch onOpenSettings={onOpenBYOK} selectedProvider={selectedProvider} selectedModel={selectedModel} />
         <StealthPanel />
       </div>
     </div>
@@ -78,33 +80,55 @@ function ActivityView() {
   return <ActivityFeed />
 }
 
-function SettingsView() {
+function SettingsView({ onOpenBYOK, selectedProvider }) {
   return (
-    <div className="card p-6">
-      <h3 className="text-lg font-semibold text-white mb-4">Settings</h3>
-      <div className="space-y-4">
-        <div className="p-4 rounded-lg bg-dark-bg border border-dark-border">
-          <h4 className="text-sm font-medium text-white mb-2">API Configuration</h4>
-          <p className="text-xs text-gray-500 mb-3">Connect your service providers</p>
-          <div className="grid grid-cols-3 gap-3">
-            {['Twitter API v2', 'OpenAI API', 'Bitly API'].map(service => (
-              <div key={service} className="flex items-center justify-between p-3 rounded-lg bg-dark-card border border-dark-border">
-                <span className="text-xs text-gray-300">{service}</span>
-                <span className="w-2 h-2 rounded-full bg-alert-green" />
+    <div className="space-y-4">
+      <div className="card p-6">
+        <h3 className="text-lg font-semibold text-white mb-4">Settings</h3>
+        <div className="space-y-4">
+          <div className="p-4 rounded-lg bg-dark-bg border border-dark-border">
+            <h4 className="text-sm font-medium text-white mb-2">AI Provider (BYOK)</h4>
+            <p className="text-xs text-gray-500 mb-3">Configure your AI provider for comment generation</p>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-300">
+                  {selectedProvider ? `Active: ${selectedProvider}` : 'No provider configured'}
+                </p>
+                <p className="text-xs text-gray-500">Bring Your Own Key - keys stored locally & encrypted</p>
               </div>
-            ))}
-          </div>
-        </div>
-        <div className="p-4 rounded-lg bg-dark-bg border border-dark-border">
-          <h4 className="text-sm font-medium text-white mb-2">Account</h4>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-300">@hustler_affiliate</p>
-              <p className="text-xs text-gray-500">Connected since Jan 2026</p>
+              <button
+                onClick={onOpenBYOK}
+                className="btn-primary text-xs"
+              >
+                Configure AI
+              </button>
             </div>
-            <button className="px-3 py-1.5 rounded-lg text-xs font-medium border border-red-500/30 text-red-400 hover:bg-red-500/10 transition-all">
-              Disconnect
-            </button>
+          </div>
+
+          <div className="p-4 rounded-lg bg-dark-bg border border-dark-border">
+            <h4 className="text-sm font-medium text-white mb-2">API Configuration</h4>
+            <p className="text-xs text-gray-500 mb-3">Connect your service providers</p>
+            <div className="grid grid-cols-3 gap-3">
+              {['Twitter API v2', 'OpenAI API', 'Bitly API'].map(service => (
+                <div key={service} className="flex items-center justify-between p-3 rounded-lg bg-dark-card border border-dark-border">
+                  <span className="text-xs text-gray-300">{service}</span>
+                  <span className="w-2 h-2 rounded-full bg-alert-green" />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="p-4 rounded-lg bg-dark-bg border border-dark-border">
+            <h4 className="text-sm font-medium text-white mb-2">Account</h4>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-300">@hustler_affiliate</p>
+                <p className="text-xs text-gray-500">Connected since Jan 2026</p>
+              </div>
+              <button className="px-3 py-1.5 rounded-lg text-xs font-medium border border-red-500/30 text-red-400 hover:bg-red-500/10 transition-all">
+                Disconnect
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -112,27 +136,59 @@ function SettingsView() {
   )
 }
 
-const views = {
-  dashboard: DashboardView,
-  radar: RadarView,
-  links: LinksView,
-  analytics: AnalyticsView,
-  stealth: StealthView,
-  activity: ActivityView,
-  settings: SettingsView,
-}
-
 export default function App() {
   const [activeView, setActiveView] = useState('dashboard')
   const [jetMode, setJetMode] = useState(false)
-  const ViewComponent = views[activeView] || DashboardView
+  const [byokOpen, setByokOpen] = useState(false)
+  const [selectedProvider, setSelectedProvider] = useState('')
+  const [selectedModel, setSelectedModel] = useState('')
+
+  const loadProvider = () => {
+    const providers = ['openai', 'anthropic', 'gemini', 'openrouter', 'deepseek', 'groq']
+    for (const p of providers) {
+      const keyData = getAPIKey(p)
+      if (keyData) {
+        setSelectedProvider(p)
+        setSelectedModel(keyData.model)
+        return
+      }
+    }
+  }
+
+  useState(() => {
+    loadProvider()
+  })
+
+  const handleBYOKClose = () => {
+    setByokOpen(false)
+    loadProvider()
+  }
+
+  const viewProps = {
+    onOpenBYOK: () => setByokOpen(true),
+    selectedProvider,
+    selectedModel
+  }
+
+  const renderView = () => {
+    switch (activeView) {
+      case 'dashboard': return <DashboardView {...viewProps} />
+      case 'radar': return <RadarView {...viewProps} />
+      case 'links': return <LinksView />
+      case 'analytics': return <AnalyticsView />
+      case 'stealth': return <StealthView />
+      case 'activity': return <ActivityView />
+      case 'settings': return <SettingsView {...viewProps} />
+      default: return <DashboardView {...viewProps} />
+    }
+  }
 
   return (
     <div className="min-h-screen bg-dark-bg">
       <Sidebar activeView={activeView} setActiveView={setActiveView} />
 
       <div className="ml-56 transition-all duration-300">
-        <Header jetMode={jetMode} setJetMode={setJetMode} />
+        <Header jetMode={jetMode} setJetMode={setJetMode} onOpenBYOK={() => setByokOpen(true)} />
         <TickerBar />
 
         {jetMode && (
@@ -149,9 +205,11 @@ export default function App() {
         )}
 
         <main className="p-6">
-          <ViewComponent />
+          {renderView()}
         </main>
       </div>
+
+      <BYOKModal isOpen={byokOpen} onClose={handleBYOKClose} />
     </div>
   )
 }

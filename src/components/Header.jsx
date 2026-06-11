@@ -1,6 +1,15 @@
-import { Bell, Search, Wifi, AtSign } from 'lucide-react'
+import { Bell, Search, Wifi, AtSign, Key, Check } from 'lucide-react'
+import { getAllAPIKeys } from '../utils/encryption'
+import { useState, useEffect } from 'react'
 
-export default function Header({ jetMode, setJetMode }) {
+export default function Header({ jetMode, setJetMode, onOpenBYOK }) {
+  const [keyCount, setKeyCount] = useState(0)
+
+  useEffect(() => {
+    const keys = getAllAPIKeys()
+    setKeyCount(Object.keys(keys).length)
+  }, [])
+
   return (
     <header className="h-16 bg-dark-card/80 backdrop-blur-md border-b border-dark-border flex items-center justify-between px-6 sticky top-0 z-40">
       <div className="flex items-center gap-4">
@@ -14,7 +23,28 @@ export default function Header({ jetMode, setJetMode }) {
         </div>
       </div>
 
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3">
+        <button
+          onClick={onOpenBYOK}
+          className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-all ${
+            keyCount > 0
+              ? 'bg-alert-green/10 border-alert-green/20 text-alert-green'
+              : 'bg-cash-gold/10 border-cash-gold/20 text-cash-gold animate-pulse'
+          }`}
+        >
+          {keyCount > 0 ? (
+            <>
+              <Check className="w-3.5 h-3.5" />
+              <span className="text-xs font-medium">{keyCount} AI {keyCount === 1 ? 'Key' : 'Keys'}</span>
+            </>
+          ) : (
+            <>
+              <Key className="w-3.5 h-3.5" />
+              <span className="text-xs font-medium">Setup AI Keys</span>
+            </>
+          )}
+        </button>
+
         <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-alert-green/10 border border-alert-green/20">
           <Wifi className="w-3.5 h-3.5 text-alert-green" />
           <span className="text-xs font-medium text-alert-green">Connected</span>
