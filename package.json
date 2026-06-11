@@ -7,14 +7,26 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "server": "node server/index.js",
+    "dev:all": "concurrently \"npm run dev\" \"npm run server\"",
+    "start": "npm run server"
   },
   "dependencies": {
+    "bitly": "^7.1.2",
+    "concurrently": "^10.0.3",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "firebase-admin": "^14.0.0",
     "framer-motion": "^12.40.0",
     "lucide-react": "^1.17.0",
+    "node-cron": "^4.2.1",
+    "openai": "^6.42.0",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
-    "recharts": "^3.8.1"
+    "recharts": "^3.8.1",
+    "twitter-api-v2": "^1.29.0"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
