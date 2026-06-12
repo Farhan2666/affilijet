@@ -12,8 +12,10 @@ import Charts from './components/Charts'
 import AffiliateLinksPanel from './components/AffiliateLinksPanel'
 import BYOKModal from './components/BYOKModal'
 import LoginModal from './components/LoginModal'
+import TwitterCookieLogin from './components/TwitterCookieLogin'
 import { getAPIKey } from './utils/encryption'
 import { isLoggedIn, getCurrentUser, clearSessionCookie } from './utils/cookies'
+import { hasTwitterCookies } from './utils/twitterCookies'
 
 function DashboardView({ onOpenBYOK, selectedProvider, selectedModel }) {
   return (
@@ -147,6 +149,7 @@ export default function App() {
   const [jetMode, setJetMode] = useState(false)
   const [byokOpen, setByokOpen] = useState(false)
   const [loginOpen, setLoginOpen] = useState(false)
+  const [twitterCookieOpen, setTwitterCookieOpen] = useState(false)
   const [selectedProvider, setSelectedProvider] = useState('')
   const [selectedModel, setSelectedModel] = useState('')
   const [user, setUser] = useState(null)
@@ -168,6 +171,8 @@ export default function App() {
     const currentUser = getCurrentUser()
     if (currentUser) {
       setUser(currentUser)
+    } else if (hasTwitterCookies()) {
+      setUser({ provider: 'twitter-cookies', username: 'twitter_user' })
     } else {
       setLoginOpen(true)
     }
@@ -186,6 +191,12 @@ export default function App() {
     clearSessionCookie()
     setUser(null)
     setLoginOpen(true)
+  }
+
+  const handleTwitterCookieLogin = (session) => {
+    setUser(session)
+    setTwitterCookieOpen(false)
+    setLoginOpen(false)
   }
 
   const viewProps = {
@@ -243,7 +254,8 @@ export default function App() {
       </div>
 
       <BYOKModal isOpen={byokOpen} onClose={handleBYOKClose} />
-      <LoginModal isOpen={loginOpen} onClose={() => setLoginOpen(false)} onLogin={handleLogin} />
+      <LoginModal isOpen={loginOpen} onClose={() => setLoginOpen(false)} onLogin={handleLogin} onTwitterCookieLogin={() => { setLoginOpen(false); setTwitterCookieOpen(true) }} />
+      <TwitterCookieLogin isOpen={twitterCookieOpen} onClose={() => setTwitterCookieOpen(false)} onLogin={handleTwitterCookieLogin} />
     </div>
   )
 }
