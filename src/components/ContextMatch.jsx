@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react'
-import { Sparkles, Link2, RefreshCw, Check, Send, Settings, AlertCircle, Loader2 } from 'lucide-react'
-import { affiliateLinks } from '../data/mockData'
+import { Sparkles, Link2, RefreshCw, Check, Send, Settings, AlertCircle, Loader2, Inbox } from 'lucide-react'
 import { generateCommentBYOK } from '../services/ai-providers'
 import { getAPIKey, getAllAPIKeys } from '../utils/encryption'
 
 export default function ContextMatch({ onOpenSettings, selectedProvider, selectedModel }) {
-  const [topic, setTopic] = useState('#AIRevolution')
-  const [link, setLink] = useState(affiliateLinks[0])
+  const [topic, setTopic] = useState('')
+  const [linkName, setLinkName] = useState('')
+  const [linkUrl, setLinkUrl] = useState('')
+  const [linkNiche, setLinkNiche] = useState('')
   const [variations, setVariations] = useState([])
   const [activeVariation, setActiveVariation] = useState(0)
   const [editing, setEditing] = useState(false)
@@ -16,11 +17,16 @@ export default function ContextMatch({ onOpenSettings, selectedProvider, selecte
   const [error, setError] = useState('')
   const [confidence, setConfidence] = useState(0)
   const [hasKeys, setHasKeys] = useState(false)
+  const [providerInfo, setProviderInfo] = useState('')
 
   useEffect(() => {
     const keys = getAllAPIKeys()
     setHasKeys(Object.keys(keys).length > 0)
-  }, [])
+    
+    if (selectedProvider && selectedModel) {
+      setProviderInfo(`${selectedProvider} / ${selectedModel}`)
+    }
+  }, [selectedProvider, selectedModel])
 
   useEffect(() => {
     if (variations.length > 0 && variations[activeVariation]) {
@@ -31,6 +37,16 @@ export default function ContextMatch({ onOpenSettings, selectedProvider, selecte
   const handleGenerate = async () => {
     if (!selectedProvider || !selectedModel) {
       setError('Please select an AI provider and model in settings')
+      return
+    }
+
+    if (!topic.trim()) {
+      setError('Please enter a trending topic')
+      return
+    }
+
+    if (!linkUrl.trim()) {
+      setError('Please enter an affiliate link URL')
       return
     }
 
@@ -50,7 +66,7 @@ export default function ContextMatch({ onOpenSettings, selectedProvider, selecte
         keyData.apiKey,
         keyData.model,
         topic,
-        { name: link.name, url: link.url, niche: link.niche }
+        { name: linkName || 'Product', url: linkUrl, niche: linkNiche || 'General' }
       )
       setVariations(result.variations)
       setConfidence(result.confidence)
@@ -70,8 +86,6 @@ export default function ContextMatch({ onOpenSettings, selectedProvider, selecte
     }, 3000)
   }
 
-  const matchedLinks = affiliateLinks.filter(l => l.status === 'active')
-
   return (
     <div className="card overflow-hidden">
       <div className="flex items-center justify-between p-4 border-b border-dark-border">
@@ -81,9 +95,7 @@ export default function ContextMatch({ onOpenSettings, selectedProvider, selecte
           </div>
           <div>
             <h3 className="text-sm font-semibold text-white">ContextMatch™</h3>
-            <p className="text-xs text-gray-500">
-              {selectedProvider ? `${selectedProvider} • ${selectedModel}` : 'AI-powered comment generation'}
-            </p>
+            <p className="text-xs text-gray-500">{providerInfo || 'AI-powered comment generation'}</p>
           </div>
         </div>
         <button
@@ -96,28 +108,47 @@ export default function ContextMatch({ onOpenSettings, selectedProvider, selecte
       </div>
 
       <div className="p-4 space-y-4">
-        <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="text-xs text-gray-500 mb-1 block">Trending Topic</label>
+          <input
+            type="text"
+            value={topic}
+            onChange={(e) => setTopic(e.target.value)}
+            className="w-full bg-dark-bg border border-dark-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-velocity-blue/50"
+            placeholder="#trending_topic or any topic"
+          />
+        </div>
+
+        <div className="grid grid-cols-3 gap-2">
           <div>
-            <label className="text-xs text-gray-500 mb-1 block">Trending Topic</label>
+            <label className="text-xs text-gray-500 mb-1 block">Product Name</label>
             <input
               type="text"
-              value={topic}
-              onChange={(e) => setTopic(e.target.value)}
+              value={linkName}
+              onChange={(e) => setLinkName(e.target.value)}
               className="w-full bg-dark-bg border border-dark-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-velocity-blue/50"
-              placeholder="#topic"
+              placeholder="Product"
             />
           </div>
           <div>
-            <label className="text-xs text-gray-500 mb-1 block">Affiliate Link</label>
-            <select
-              value={link.id}
-              onChange={(e) => setLink(matchedLinks.find(l => l.id === +e.target.value))}
+            <label className="text-xs text-gray-500 mb-1 block">Niche</label>
+            <input
+              type="text"
+              value={linkNiche}
+              onChange={(e) => setLinkNiche(e.target.value)}
               className="w-full bg-dark-bg border border-dark-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-velocity-blue/50"
-            >
-              {matchedLinks.map(l => (
-                <option key={l.id} value={l.id}>{l.name}</option>
-              ))}
-            </select>
+              placeholder="Technology"
+            />
+          </div>
+          <div>
+            <label className="text-xs text-gray-500 mb-1 block">Link URL</label>
+            <input
+              type="text"
+              value={linkUrl}
+              onChange={(e) => setLinkUrl(e.target.value)}
+              className="w-full bg-dark-bg border border-dark-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-velocity-blue/50"
+              placeholder="https://..."
+            />
           </div>
         </div>
 
@@ -161,10 +192,12 @@ export default function ContextMatch({ onOpenSettings, selectedProvider, selecte
                 <span className="text-xs text-gray-500">Confidence</span>
                 <span className="text-sm font-bold text-alert-green">{Math.round(confidence * 100)}%</span>
               </div>
-              <div className="flex items-center gap-2">
-                <Link2 className="w-3.5 h-3.5 text-gray-500" />
-                <span className="text-xs text-gray-400">{link.name}</span>
-              </div>
+              {linkName && (
+                <div className="flex items-center gap-2">
+                  <Link2 className="w-3.5 h-3.5 text-gray-500" />
+                  <span className="text-xs text-gray-400">{linkName}</span>
+                </div>
+              )}
             </div>
 
             <div className="flex gap-1 border-b border-dark-border">

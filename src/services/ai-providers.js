@@ -28,9 +28,14 @@ const providers = {
       'anthropic/claude-3.5-sonnet',
       'google/gemini-pro-1.5',
       'meta-llama/llama-3.1-70b-instruct',
-      'mistralai/mixtral-8x7b-instruct'
+      'mistralai/mixtral-8x7b-instruct',
+      'google/gemma-2-9b-it:free',
+      'meta-llama/llama-3.1-8b-instruct:free',
+      'mistralai/mistral-7b-instruct:free',
+      'qwen/qwen-2-7b-instruct:free',
+      'huggingfaceh4/zephyr-7b-beta:free'
     ],
-    defaultModel: 'openai/gpt-4o',
+    defaultModel: 'google/gemma-2-9b-it:free',
     createClient: (apiKey) => new OpenAI({
       apiKey,
       baseURL: 'https://openrouter.ai/api/v1',
@@ -74,6 +79,12 @@ export function getProviderModels(providerId) {
   return provider.models
 }
 
+export function isCustomModel(providerId, model) {
+  const provider = providers[providerId]
+  if (!provider) return true
+  return !provider.models.includes(model)
+}
+
 export async function generateCommentBYOK(providerId, apiKey, model, topic, affiliateLink, context = '') {
   const provider = providers[providerId]
   if (!provider) throw new Error(`Provider ${providerId} not found`)
@@ -90,9 +101,7 @@ Rules:
 - Never use spammy language like "CLICK HERE" or "BUY NOW"
 - Add value to the conversation first, then mention the link
 
-Example good comment: "This is exactly what I needed! Been using this for 3 months and the results are insane 🔥 Here's the one I got: {link}"
-
-Example bad comment: "BUY THIS NOW!!! BEST DEAL EVER!!! {link} {link} {link}"`
+Return ONLY valid JSON array, no markdown, no code blocks, just the raw JSON array.`
 
   const userPrompt = `Generate a Twitter comment for the trending topic: "${topic}"
 
@@ -101,26 +110,22 @@ Affiliate link to include: ${affiliateLink.url}
 Product/Service: ${affiliateLink.name}
 Niche: ${affiliateLink.niche}
 
-Generate 3 variations of the comment, each with a different angle:
-1. Personal experience angle
-2. Problem-solution angle  
-3. Curiosity/recommendation angle
-
-Return as JSON array with format:
+Generate 3 variations with different angles. Return as JSON array:
 [
-  { "variation": "personal", "text": "comment text here" },
-  { "variation": "problem-solution", "text": "comment text here" },
-  { "variation": "curiosity", "text": "comment text here" }
+  { "variation": "personal", "text": "comment text" },
+  { "variation": "problem-solution", "text": "comment text" },
+  { "variation": "curiosity", "text": "comment text" }
 ]`
 
   try {
     let response
+    const fullPrompt = `${systemPrompt}\n\n${userPrompt}`
 
     if (providerId === 'gemini') {
       const client = provider.createClient(apiKey)
       const generativeModel = client.getGenerativeModel({ model })
       const result = await generativeModel.generateContent({
-        contents: [{ role: 'user', parts: [{ text: `${systemPrompt}\n\n${userPrompt}` }] }],
+        contents: [{ role: 'user', parts: [{ text: fullPrompt }] }],
         generationConfig: {
           temperature: 0.8,
           maxOutputTokens: 500,
@@ -132,37 +137,50 @@ Return as JSON array with format:
       const result = await client.messages.create({
         model,
         max_tokens: 500,
-        system: systemPrompt,
-        messages: [{ role: 'user', content: userPrompt }]
+        messages: [{ role: 'user', content: fullPrompt }]
       })
       response = result.content[0].text
     } else {
       const client = provider.createClient(apiKey)
       const completion = await client.chat.completions.create({
         model,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt }
-        ],
+        messages: [{ role: 'user', content: fullPrompt }],
         temperature: 0.8,
-        max_tokens: 500,
-        response_format: { type: 'json_object' }
+        max_tokens: 500
       })
       response = completion.choices[0].message.content
     }
 
+    response = response.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
+    
     const parsed = JSON.parse(response)
+    const variations = Array.isArray(parsed) ? parsed : parsed.comments || parsed.variations || []
+    
+    if (!variations.length) {
+      throw new Error('No variations generated')
+    }
     
     return {
-      variations: parsed.comments || parsed,
+      variations,
       provider: provider.name,
       model,
       confidence: calculateConfidence(topic, affiliateLink)
     }
     
   } catch (error) {
-    console.error('Error generating comment with BYOK:', error)
-    throw new Error(`Failed to generate comment: ${error.message}`)
+    console.error('Error generating comment:', error)
+    
+    if (error.message.includes('401') || error.message.includes('Unauthorized')) {
+      throw new Error('Invalid API key. Please check your key in settings.')
+    }
+    if (error.message.includes('429')) {
+      throw new Error('Rate limit exceeded. Please wait a moment and try again.')
+    }
+    if (error.message.includes('404')) {
+      throw new Error(`Model "${model}" not found. Please check the model name.`)
+    }
+    
+    throw new Error(`Failed to generate: ${error.message}`)
   }
 }
 
@@ -177,7 +195,7 @@ function calculateConfidence(topic, affiliateLink) {
   }
   
   const keywords = affiliateLink.name.toLowerCase().split(' ')
-  const matchCount = keywords.filter(k => topicLower.includes(k)).length
+  const matchCount = keywords.filter(k => topicLower.includes(k) && k.length > 3).length
   score += (matchCount / keywords.length) * 0.2
   
   return Math.min(0.99, score)

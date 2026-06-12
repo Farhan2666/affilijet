@@ -1,32 +1,27 @@
-const ENCRYPTION_KEY = 'affilijet-secure-key-2026'
-
 export function encryptAPIKey(apiKey) {
   if (!apiKey) return ''
   
-  let encrypted = ''
-  for (let i = 0; i < apiKey.length; i++) {
-    const charCode = apiKey.charCodeAt(i) ^ ENCRYPTION_KEY.charCodeAt(i % ENCRYPTION_KEY.length)
-    encrypted += String.fromCharCode(charCode)
+  try {
+    const encoded = btoa(unescape(encodeURIComponent(apiKey)))
+    return `enc_${encoded}`
+  } catch (error) {
+    console.error('Encryption failed:', error)
+    return ''
   }
-  
-  return btoa(encrypted)
 }
 
 export function decryptAPIKey(encryptedKey) {
   if (!encryptedKey) return ''
   
   try {
-    const decoded = atob(encryptedKey)
-    let decrypted = ''
-    
-    for (let i = 0; i < decoded.length; i++) {
-      const charCode = decoded.charCodeAt(i) ^ ENCRYPTION_KEY.charCodeAt(i % ENCRYPTION_KEY.length)
-      decrypted += String.fromCharCode(charCode)
+    if (!encryptedKey.startsWith('enc_')) {
+      return encryptedKey
     }
     
-    return decrypted
+    const encoded = encryptedKey.substring(4)
+    return decodeURIComponent(escape(atob(encoded)))
   } catch (error) {
-    console.error('Failed to decrypt API key:', error)
+    console.error('Decryption failed:', error)
     return ''
   }
 }
@@ -36,10 +31,17 @@ export function saveAPIKey(providerId, apiKey, model) {
   const data = {
     apiKey: encrypted,
     model,
-    updatedAt: new Date().toISOString()
+    updatedAt: new Date().toISOString(),
+    providerId
   }
   
-  localStorage.setItem(`affilijet_apikey_${providerId}`, JSON.stringify(data))
+  try {
+    localStorage.setItem(`affilijet_apikey_${providerId}`, JSON.stringify(data))
+    return true
+  } catch (error) {
+    console.error('Failed to save API key:', error)
+    return false
+  }
 }
 
 export function getAPIKey(providerId) {
@@ -48,13 +50,22 @@ export function getAPIKey(providerId) {
   
   try {
     const data = JSON.parse(stored)
+    const decryptedKey = decryptAPIKey(data.apiKey)
+    
+    if (!decryptedKey) {
+      removeAPIKey(providerId)
+      return null
+    }
+    
     return {
-      apiKey: decryptAPIKey(data.apiKey),
+      apiKey: decryptedKey,
       model: data.model,
-      updatedAt: data.updatedAt
+      updatedAt: data.updatedAt,
+      providerId: data.providerId || providerId
     }
   } catch (error) {
     console.error('Failed to parse API key data:', error)
+    removeAPIKey(providerId)
     return null
   }
 }
@@ -83,18 +94,25 @@ export function getAllAPIKeys() {
   return keys
 }
 
-export function validateAPIKeyFormat(providerId, apiKey) {
+export function testAPIKey(providerId, apiKey) {
   const patterns = {
-    openai: /^sk-[a-zA-Z0-9]{48}$/,
+    openai: /^sk-[a-zA-Z0-9]{20,}$/,
     anthropic: /^sk-ant-[a-zA-Z0-9-]+$/,
-    gemini: /^[a-zA-Z0-9_-]{39}$/,
-    openrouter: /^sk-or-[a-zA-Z0-9]{40,}$/,
-    deepseek: /^sk-[a-zA-Z0-9]{48}$/,
-    groq: /^gsk_[a-zA-Z0-9]{40,}$/
+    gemini: /^[a-zA-Z0-9_-]{30,}$/,
+    openrouter: /^sk-or-[a-zA-Z0-9-]{40,}$/,
+    deepseek: /^sk-[a-zA-Z0-9]{20,}$/,
+    groq: /^gsk_[a-zA-Z0-9]{20,}$/
   }
   
   const pattern = patterns[providerId]
-  if (!pattern) return true
+  if (!pattern) return { valid: true, message: 'Format check skipped' }
   
-  return pattern.test(apiKey)
+  if (!pattern.test(apiKey)) {
+    return { 
+      valid: false, 
+      message: `Invalid format for ${providerId}. Expected pattern: ${pattern.source}` 
+    }
+  }
+  
+  return { valid: true, message: 'Format looks good' }
 }

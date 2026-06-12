@@ -2,18 +2,18 @@ import { TrendingUp, MousePointerClick, DollarSign, MessageSquare, ArrowUpRight,
 import { statsData } from '../data/mockData'
 import { useState } from 'react'
 
+const statCards = [
+  { key: 'comments', label: 'Comments Deployed', icon: MessageSquare, color: 'velocity-blue', change: 0 },
+  { key: 'clicks', label: 'Link Clicks', icon: MousePointerClick, color: 'cash-gold', change: 0 },
+  { key: 'conversions', label: 'Conversions', icon: TrendingUp, color: 'alert-green', change: 0 },
+  { key: 'revenue', label: 'Revenue', icon: DollarSign, color: 'cash-gold', change: 0, prefix: '$' },
+]
+
 const colorMap = {
   'velocity-blue': { bg: 'bg-velocity-blue/10', text: 'text-velocity-blue' },
   'cash-gold': { bg: 'bg-cash-gold/10', text: 'text-cash-gold' },
   'alert-green': { bg: 'bg-alert-green/10', text: 'text-alert-green' },
 }
-
-const statCards = [
-  { key: 'comments', label: 'Comments Deployed', icon: MessageSquare, color: 'velocity-blue', change: +12.5 },
-  { key: 'clicks', label: 'Link Clicks', icon: MousePointerClick, color: 'cash-gold', change: +8.3 },
-  { key: 'conversions', label: 'Conversions', icon: TrendingUp, color: 'alert-green', change: +23.1 },
-  { key: 'revenue', label: 'Revenue', icon: DollarSign, color: 'cash-gold', change: +18.7, prefix: '$' },
-]
 
 export default function StatsOverview() {
   const [period, setPeriod] = useState('today')
@@ -41,17 +41,12 @@ export default function StatsOverview() {
         {statCards.map(card => {
           const Icon = card.icon
           const value = data[card.key]
-          const isPositive = card.change > 0
           const colors = colorMap[card.color]
           return (
             <div key={card.key} className="bg-dark-bg rounded-xl p-4 border border-dark-border hover:border-gray-600 transition-all group">
               <div className="flex items-center justify-between mb-3">
                 <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${colors.bg}`}>
                   <Icon className={`w-5 h-5 ${colors.text}`} />
-                </div>
-                <div className={`flex items-center gap-0.5 text-xs font-medium ${isPositive ? 'text-alert-green' : 'text-red-400'}`}>
-                  {isPositive ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
-                  {Math.abs(card.change)}%
                 </div>
               </div>
               <div className="text-2xl font-bold text-white mb-0.5">

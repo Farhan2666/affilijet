@@ -1,8 +1,8 @@
-import { Bell, Search, Wifi, AtSign, Key, Check } from 'lucide-react'
+import { Bell, Search, Wifi, AtSign, Key, Check, LogOut, User } from 'lucide-react'
 import { getAllAPIKeys } from '../utils/encryption'
 import { useState, useEffect } from 'react'
 
-export default function Header({ jetMode, setJetMode, onOpenBYOK }) {
+export default function Header({ jetMode, setJetMode, onOpenBYOK, user, onLoginClick, onLogout }) {
   const [keyCount, setKeyCount] = useState(0)
 
   useEffect(() => {
@@ -29,7 +29,7 @@ export default function Header({ jetMode, setJetMode, onOpenBYOK }) {
           className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-all ${
             keyCount > 0
               ? 'bg-alert-green/10 border-alert-green/20 text-alert-green'
-              : 'bg-cash-gold/10 border-cash-gold/20 text-cash-gold animate-pulse'
+              : 'bg-cash-gold/10 border-cash-gold/20 text-cash-gold'
           }`}
         >
           {keyCount > 0 ? (
@@ -45,15 +45,29 @@ export default function Header({ jetMode, setJetMode, onOpenBYOK }) {
           )}
         </button>
 
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-alert-green/10 border border-alert-green/20">
-          <Wifi className="w-3.5 h-3.5 text-alert-green" />
-          <span className="text-xs font-medium text-alert-green">Connected</span>
-        </div>
-
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-velocity-blue/10 border border-velocity-blue/20">
-          <AtSign className="w-3.5 h-3.5 text-velocity-blue" />
-          <span className="text-xs font-medium text-blue-300">@hustler_affiliate</span>
-        </div>
+        {user ? (
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-velocity-blue/10 border border-velocity-blue/20">
+              <AtSign className="w-3.5 h-3.5 text-velocity-blue" />
+              <span className="text-xs font-medium text-blue-300">@{user.username}</span>
+            </div>
+            <button
+              onClick={onLogout}
+              className="p-2 rounded-lg hover:bg-red-500/10 text-gray-500 hover:text-red-400 transition-all"
+              title="Logout"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={onLoginClick}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-cash-gold/10 border border-cash-gold/20 text-cash-gold hover:bg-cash-gold/20 transition-all"
+          >
+            <User className="w-3.5 h-3.5" />
+            <span className="text-xs font-medium">Login</span>
+          </button>
+        )}
 
         <button
           onClick={() => setJetMode(!jetMode)}

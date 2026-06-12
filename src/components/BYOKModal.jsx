@@ -1,21 +1,26 @@
 import { useState, useEffect } from 'react'
-import { Key, Save, Trash2, Check, X, Eye, EyeOff, Shield, AlertCircle } from 'lucide-react'
+import { Key, Save, Trash2, Check, X, Eye, EyeOff, Shield, AlertCircle, Edit3 } from 'lucide-react'
 import { getProviders } from '../services/ai-providers'
-import { saveAPIKey, getAPIKey, removeAPIKey, getAllAPIKeys, validateAPIKeyFormat } from '../utils/encryption'
+import { saveAPIKey, getAPIKey, removeAPIKey, getAllAPIKeys, testAPIKey } from '../utils/encryption'
 
 export default function BYOKModal({ isOpen, onClose }) {
   const [providers, setProviders] = useState([])
   const [selectedProvider, setSelectedProvider] = useState('')
   const [apiKey, setApiKey] = useState('')
   const [selectedModel, setSelectedModel] = useState('')
+  const [customModel, setCustomModel] = useState('')
+  const [useCustomModel, setUseCustomModel] = useState(false)
   const [showKey, setShowKey] = useState(false)
   const [savedKeys, setSavedKeys] = useState({})
   const [message, setMessage] = useState({ type: '', text: '' })
+  const [testing, setTesting] = useState(false)
 
   useEffect(() => {
     if (isOpen) {
       setProviders(getProviders())
       setSavedKeys(getAllAPIKeys())
+      setUseCustomModel(false)
+      setCustomModel('')
     }
   }, [isOpen])
 
@@ -28,6 +33,10 @@ export default function BYOKModal({ isOpen, onClose }) {
       if (existing) {
         setApiKey(existing.apiKey)
         setSelectedModel(existing.model)
+        if (!provider.models.includes(existing.model)) {
+          setUseCustomModel(true)
+          setCustomModel(existing.model)
+        }
       } else {
         setApiKey('')
       }
@@ -40,17 +49,27 @@ export default function BYOKModal({ isOpen, onClose }) {
       return
     }
 
-    if (!validateAPIKeyFormat(selectedProvider, apiKey)) {
-      setMessage({ type: 'error', text: 'Invalid API Key format for this provider' })
+    const model = useCustomModel ? customModel.trim() : selectedModel
+    if (!model) {
+      setMessage({ type: 'error', text: 'Please select or enter a model' })
       return
     }
 
-    saveAPIKey(selectedProvider, apiKey, selectedModel)
-    setSavedKeys(getAllAPIKeys())
-    setMessage({ type: 'success', text: 'API Key saved securely' })
-    setApiKey('')
-    
-    setTimeout(() => setMessage({ type: '', text: '' }), 3000)
+    const test = testAPIKey(selectedProvider, apiKey)
+    if (!test.valid) {
+      setMessage({ type: 'error', text: test.message })
+      return
+    }
+
+    const success = saveAPIKey(selectedProvider, apiKey, model)
+    if (success) {
+      setSavedKeys(getAllAPIKeys())
+      setMessage({ type: 'success', text: 'API Key saved successfully' })
+      setApiKey('')
+      setTimeout(() => setMessage({ type: '', text: '' }), 3000)
+    } else {
+      setMessage({ type: 'error', text: 'Failed to save API key' })
+    }
   }
 
   const handleDelete = (providerId) => {
@@ -134,16 +153,48 @@ export default function BYOKModal({ isOpen, onClose }) {
             {selectedProvider && (
               <>
                 <div>
-                  <label className="text-sm font-medium text-gray-300 mb-2 block">Model</label>
-                  <select
-                    value={selectedModel}
-                    onChange={(e) => setSelectedModel(e.target.value)}
-                    className="w-full bg-dark-bg border border-dark-border rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-velocity-blue/50"
-                  >
-                    {providers.find(p => p.id === selectedProvider)?.models.map(model => (
-                      <option key={model} value={model}>{model}</option>
-                    ))}
-                  </select>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-sm font-medium text-gray-300">Model</label>
+                    <button
+                      onClick={() => setUseCustomModel(!useCustomModel)}
+                      className={`flex items-center gap-1.5 text-xs px-2 py-1 rounded transition-all ${
+                        useCustomModel
+                          ? 'bg-cash-gold/20 text-cash-gold'
+                          : 'bg-dark-bg text-gray-500 hover:text-gray-300'
+                      }`}
+                    >
+                      <Edit3 className="w-3 h-3" />
+                      {useCustomModel ? 'Custom Mode' : 'Use Default'}
+                    </button>
+                  </div>
+                  
+                  {useCustomModel ? (
+                    <input
+                      type="text"
+                      value={customModel}
+                      onChange={(e) => setCustomModel(e.target.value)}
+                      placeholder="Enter model name (e.g., openai/gpt-4-turbo)"
+                      className="w-full bg-dark-bg border border-dark-border rounded-lg px-4 py-2.5 text-sm text-white font-mono focus:outline-none focus:border-velocity-blue/50"
+                    />
+                  ) : (
+                    <select
+                      value={selectedModel}
+                      onChange={(e) => setSelectedModel(e.target.value)}
+                      className="w-full bg-dark-bg border border-dark-border rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-velocity-blue/50"
+                    >
+                      {providers.find(p => p.id === selectedProvider)?.models.map(model => (
+                        <option key={model} value={model}>
+                          {model} {model.includes(':free') ? '(FREE)' : ''}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                  
+                  {selectedProvider === 'openrouter' && (
+                    <p className="text-xs text-cash-gold mt-1.5">
+                      💡 Models with ":free" suffix are 100% free to use
+                    </p>
+                  )}
                 </div>
 
                 <div>
