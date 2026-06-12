@@ -20,14 +20,14 @@ function DashboardView({ onOpenBYOK, selectedProvider, selectedModel }) {
     <div className="space-y-4">
       <StatsOverview />
       <Charts />
-      <div className="grid grid-cols-3 gap-4">
-        <div className="col-span-2">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div className="lg:col-span-2">
           <TrendingRadar />
         </div>
         <ContextMatch onOpenSettings={onOpenBYOK} selectedProvider={selectedProvider} selectedModel={selectedModel} />
       </div>
-      <div className="grid grid-cols-3 gap-4">
-        <div className="col-span-2">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div className="lg:col-span-2">
           <ActivityFeed />
         </div>
         <CompliancePanel />
@@ -38,8 +38,8 @@ function DashboardView({ onOpenBYOK, selectedProvider, selectedModel }) {
 
 function RadarView({ onOpenBYOK, selectedProvider, selectedModel }) {
   return (
-    <div className="grid grid-cols-3 gap-4">
-      <div className="col-span-2">
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      <div className="lg:col-span-2">
         <TrendingRadar />
       </div>
       <div className="space-y-4">
@@ -71,7 +71,7 @@ function AnalyticsView() {
 
 function StealthView() {
   return (
-    <div className="grid grid-cols-2 gap-4">
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
       <StealthPanel />
       <CompliancePanel />
     </div>
@@ -85,7 +85,7 @@ function ActivityView() {
 function SettingsView({ onOpenBYOK, selectedProvider, user, onLogout }) {
   return (
     <div className="space-y-4">
-      <div className="card p-6">
+      <div className="card p-4 lg:p-6">
         <h3 className="text-lg font-semibold text-white mb-4">Settings</h3>
         <div className="space-y-4">
           <div className="p-4 rounded-lg bg-dark-bg border border-dark-border">
@@ -111,14 +111,14 @@ function SettingsView({ onOpenBYOK, selectedProvider, user, onLogout }) {
           <div className="p-4 rounded-lg bg-dark-bg border border-dark-border">
             <h4 className="text-sm font-medium text-white mb-2">AI Provider (BYOK)</h4>
             <p className="text-xs text-gray-500 mb-3">Configure your AI provider for comment generation</p>
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <p className="text-sm text-gray-300">
                   {selectedProvider ? `Active: ${selectedProvider}` : 'No provider configured'}
                 </p>
                 <p className="text-xs text-gray-500">Bring Your Own Key — keys stored locally & encrypted</p>
               </div>
-              <button onClick={onOpenBYOK} className="btn-primary text-xs">
+              <button onClick={onOpenBYOK} className="btn-primary text-xs whitespace-nowrap">
                 Configure AI
               </button>
             </div>
@@ -127,7 +127,7 @@ function SettingsView({ onOpenBYOK, selectedProvider, user, onLogout }) {
           <div className="p-4 rounded-lg bg-dark-bg border border-dark-border">
             <h4 className="text-sm font-medium text-white mb-2">API Configuration</h4>
             <p className="text-xs text-gray-500 mb-3">Backend service connections</p>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {['Twitter API v2', 'OpenAI API', 'Bitly API'].map(service => (
                 <div key={service} className="flex items-center justify-between p-3 rounded-lg bg-dark-card border border-dark-border">
                   <span className="text-xs text-gray-300">{service}</span>
@@ -213,7 +213,7 @@ export default function App() {
     <div className="min-h-screen bg-dark-bg">
       <Sidebar activeView={activeView} setActiveView={setActiveView} />
 
-      <div className="ml-56 transition-all duration-300">
+      <div className="lg:ml-56 transition-all duration-300">
         <Header
           jetMode={jetMode}
           setJetMode={setJetMode}
@@ -225,19 +225,19 @@ export default function App() {
         <TickerBar />
 
         {jetMode && (
-          <div className="mx-6 mt-4 p-3 rounded-xl bg-cash-gold/10 border border-cash-gold/30 flex items-center gap-3">
-            <span className="text-2xl">✈️</span>
-            <div>
-              <p className="text-sm font-bold text-cash-gold">JET MODE ACTIVE</p>
-              <p className="text-xs text-gray-400">Burst commenting enabled — deploying to top trending topics with randomized stealth patterns</p>
+          <div className="mx-4 lg:mx-6 mt-4 p-3 rounded-xl bg-cash-gold/10 border border-cash-gold/30 flex items-center gap-3">
+            <span className="text-xl lg:text-2xl">✈️</span>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs lg:text-sm font-bold text-cash-gold">JET MODE ACTIVE</p>
+              <p className="text-xs text-gray-400 hidden sm:block">Burst commenting enabled — deploying to top trending topics with randomized stealth patterns</p>
             </div>
-            <button onClick={() => setJetMode(false)} className="ml-auto text-xs text-gray-500 hover:text-white transition-colors">
+            <button onClick={() => setJetMode(false)} className="text-xs text-gray-500 hover:text-white transition-colors whitespace-nowrap">
               Deactivate
             </button>
           </div>
         )}
 
-        <main className="p-6">
+        <main className="p-4 lg:p-6">
           {renderView()}
         </main>
       </div>

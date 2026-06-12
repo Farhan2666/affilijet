@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { LogIn, User, AtSign } from 'lucide-react'
+import { LogIn, AtSign } from 'lucide-react'
 import { setSessionCookie } from '../utils/cookies'
 
 export default function LoginModal({ isOpen, onClose, onLogin }) {
@@ -32,21 +32,21 @@ export default function LoginModal({ isOpen, onClose, onLogin }) {
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-dark-card border border-dark-border rounded-2xl max-w-md w-full">
-        <div className="p-6 border-b border-dark-border">
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+      <div className="bg-dark-card border-t sm:border border-dark-border rounded-t-2xl sm:rounded-2xl w-full sm:max-w-md">
+        <div className="p-4 lg:p-6 border-b border-dark-border">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-velocity-blue/10 flex items-center justify-center">
-              <LogIn className="w-5 h-5 text-velocity-blue" />
+            <div className="w-9 h-9 lg:w-10 lg:h-10 rounded-lg bg-velocity-blue/10 flex items-center justify-center">
+              <LogIn className="w-4 h-4 lg:w-5 lg:h-5 text-velocity-blue" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-white">Connect Twitter Account</h2>
-              <p className="text-xs text-gray-500">Login to start deploying comments</p>
+              <h2 className="text-base lg:text-lg font-bold text-white">Connect Twitter</h2>
+              <p className="text-xs text-gray-500">Login to start deploying</p>
             </div>
           </div>
         </div>
 
-        <form onSubmit={handleLogin} className="p-6 space-y-4">
+        <form onSubmit={handleLogin} className="p-4 lg:p-6 space-y-4">
           {error && (
             <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-sm text-red-400">
               {error}
@@ -70,8 +70,7 @@ export default function LoginModal({ isOpen, onClose, onLogin }) {
 
           <div className="p-3 rounded-lg bg-cash-gold/10 border border-cash-gold/20">
             <p className="text-xs text-gray-400">
-              <strong className="text-cash-gold">Note:</strong> This is a session cookie for local use. 
-              For production, connect via Twitter OAuth with API keys configured in your backend.
+              <strong className="text-cash-gold">Note:</strong> Session cookie for local use. For production, use Twitter OAuth.
             </p>
           </div>
 
@@ -83,10 +82,7 @@ export default function LoginModal({ isOpen, onClose, onLogin }) {
             >
               Cancel
             </button>
-            <button
-              type="submit"
-              className="flex-1 btn-primary text-sm"
-            >
+            <button type="submit" className="flex-1 btn-primary text-sm">
               Login
             </button>
           </div>
